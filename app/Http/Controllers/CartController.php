@@ -44,13 +44,12 @@ class CartController extends Controller
         } else {
             $oldContent = json_decode($selectedCart->content);
             array_push($oldContent, $content);
-            $selectedCart->content = $oldContent;
+            $selectedCart->content = json_encode($oldContent);
             $selectedCart->save();
         }
-        dd($selectedCart);
         return response()->json([
             'Status' => 'SUCCESS',
-            'Data' => $selectedCart->content
+            'Data' => json_decode($selectedCart->content)
         ]);
     }
 
@@ -98,10 +97,9 @@ class CartController extends Controller
             $selectedCart->content = json_encode($oldContent);
             $selectedCart->save();
         }
-        dd($selectedCart);
         return response()->json([
             'Status' => 'SUCCESS',
-            'Data' => $selectedCart->content
+            'Data' => json_encode($selectedCart->content)
         ]);
     }
 
@@ -125,10 +123,9 @@ class CartController extends Controller
         }
         $selectedCart->content = json_encode($newContent);
         $selectedCart->save();
-        dd($selectedCart);
         return response()->json([
             'Status' => 'SUCCESS',
-            'Data' => $selectedCart->content
+            'Data' => json_decode($selectedCart->content)
         ]);
     }
 
