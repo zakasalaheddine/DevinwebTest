@@ -34,7 +34,7 @@ class CartController extends Controller
             'qty' => $request->quantity,
             'options' => $images,
             'tax' => $tax,
-            'subtotal' => ($tax + $selectedProduct->price) * $request->quantity
+            'subtotal' => $tax * $selectedProduct->price * $request->quantity
         ];
         if ($selectedCart == null) {
             $selectedCart = new Cart;
@@ -83,7 +83,7 @@ class CartController extends Controller
             'qty' => $request->quantity,
             'options' => $images,
             'tax' => $tax,
-            'subtotal' => ($tax + $selectedProduct->price) * $request->quantity
+            'subtotal' => $tax * $selectedProduct->price * $request->quantity
         ];
         $selectedIndex = -1;
         for ($i=0; $i < $oldContent; $i++) {
@@ -162,6 +162,7 @@ class CartController extends Controller
             'Status' => 'SUCCESS',
             'Data' => json_decode($selectedCart->discount)
         ]);
+        
     }
 
     public function GetCart($cartId)
