@@ -7,18 +7,14 @@ use App\Cart;
 use App\Product;
 use App\Discount;
 use Illuminate\Support\Str;
+use App\Http\Requests\CartItemsRequest;
+use App\Http\Requests\StoreDiscountRequest;
 
 class CartController extends Controller
 {
-    public function AddItems(Request $request, $cartId)
+    public function AddItems(CartItemsRequest $request, $cartId)
     {
         $selectedProduct = Product::find($request->product_id);
-        if ($selectedProduct == null) {
-            return response()->json([
-                'Status' => 'ERROR',
-                'Message' => 'Product Not Found'
-            ]);
-        }
         $selectedCart = Cart::find($cartId);
         $images = [];
         foreach ($selectedProduct->images as $image) {
@@ -53,22 +49,9 @@ class CartController extends Controller
         ]);
     }
 
-    public function UpdateItem(Request $request, $cartId)
+    public function UpdateItem(CartItemsRequest $request, Cart $selectedCart)
     {
         $selectedProduct = Product::find($request->product_id);
-        if ($selectedProduct == null) {
-            return response()->json([
-                'Status' => 'ERROR',
-                'Message' => 'Product Not Found'
-            ]);
-        }
-        $selectedCart = Cart::find($cartId);
-        if ($selectedCart == null) {
-            return response()->json([
-                'Status' => 'ERROR',
-                'Message' => 'Cart Not Found'
-            ]);
-        }
         $oldContent = json_decode($selectedCart->content);
         $images = [];
         foreach ($selectedProduct->images as $image) {
@@ -96,26 +79,19 @@ class CartController extends Controller
             $oldContent[$selectedIndex] = $content;
             $selectedCart->content = json_encode($oldContent);
             $selectedCart->save();
+            return response()->json([
+                'Status' => 'SUCCESS',
+                'Data' => json_encode($selectedCart->content)
+                ]);
         }
-        return response()->json([
-            'Status' => 'SUCCESS',
-            'Data' => json_encode($selectedCart->content)
-        ]);
     }
 
-    public function DeleteItem(Request $request, $cartId)
+    public function DeleteItem(CartItemsRequest $request, Cart $selectedCart)
     {
-        $selectedCart = Cart::find($cartId);
-        if ($selectedCart == null) {
-            return response()->json([
-                'Status' => 'ERROR',
-                'Message' => 'Cart Not Found'
-            ]);
-        }
         $oldContent = json_decode($selectedCart->content);
         $newContent = [];
         if (count($oldContent) > 0) {
-            for ($i=0; $i < $oldContent; $i++) {
+            for ($i=0; $i < count($oldContent); $i++) {
                 if ($oldContent[$i]->row_id != $request->row_id) {
                     array_push($newContent, $oldContent[$i]);
                 }
@@ -129,28 +105,18 @@ class CartController extends Controller
         ]);
     }
 
-    public function AddDiscount(Request $request, $cartId)
+    public function AddDiscount(StoreDiscountRequest $request, $id)
     {
-        $selectedCart = Cart::find($cartId);
-        if ($selectedCart == null) {
-            return response()->json([
-                'Status' => 'ERROR',
-                'Message' => 'Cart Not Found'
-            ]);
-        }
+        $selectedCart = Cart::find($id);
         $selectedDiscount = Discount::where('discount_code', $request->discount_code)->first();
-        if ($selectedDiscount == null) {
-            return response()->json([
-                'Status' => 'ERROR',
-                'Message' => 'Discount Not Found'
-            ]);
-        }
         $content = json_decode($selectedCart->content);
         $discountedValue = 0;
-        foreach ($content as $item) {
-            $discountedValue += $item->subtotal;
+        if ($content) {
+            foreach ($content as $item) {
+                $discountedValue += $item->subtotal;
+            }
+            $discountedValue = $discountedValue - ($selectedDiscount->percentage_value / 100 * $discountedValue);
         }
-        $discountedValue = $discountedValue - ($selectedDiscount->percentage_value / 100 * $discountedValue);
         $discountValue = [
             'code' => $selectedDiscount->discount_code,
             'discounted_amount' => $discountedValue,
@@ -162,18 +128,11 @@ class CartController extends Controller
             'Status' => 'SUCCESS',
             'Data' => json_decode($selectedCart->discount)
         ]);
-        
     }
 
-    public function GetCart($cartId)
+    public function GetCart(CartItemsRequest $request, $id)
     {
-        $selectedCart = Cart::find($cartId);
-        if ($selectedCart == null) {
-            return response()->json([
-                'Status' => 'ERROR',
-                'Message' => 'Cart Not Found'
-            ]);
-        }
+        $selectedCart = Cart::find($id);
         $content = json_decode($selectedCart->content);
         $discount = json_decode($selectedCart->discount);
         $totalTax = 0;
