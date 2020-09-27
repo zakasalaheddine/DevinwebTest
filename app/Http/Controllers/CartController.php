@@ -9,6 +9,7 @@ use App\Discount;
 use Illuminate\Support\Str;
 use App\Http\Requests\CartItemsRequest;
 use App\Http\Requests\StoreDiscountRequest;
+use App\Http\Resources\Cart as CartResource;
 
 class CartController extends Controller
 {
@@ -21,7 +22,7 @@ class CartController extends Controller
             array_push($images, $image->url);
         }
         
-        $tax =number_format(env('TAX_VALUE')) / 100 * $selectedProduct->price;
+        $tax =round(number_format(env('TAX_VALUE')) / 100 * $selectedProduct->price, 2);
         $content = [
             'row_id' => uniqid(),
             'product_id' => $selectedProduct->id,
@@ -43,10 +44,7 @@ class CartController extends Controller
             $selectedCart->content = json_encode($oldContent);
             $selectedCart->save();
         }
-        return response()->json([
-            'Status' => 'SUCCESS',
-            'Data' => json_decode($selectedCart->content)
-        ]);
+        return new CartResource($selectedCart);
     }
 
     public function UpdateItem(CartItemsRequest $request, Cart $selectedCart)
@@ -79,10 +77,8 @@ class CartController extends Controller
             $oldContent[$selectedIndex] = $content;
             $selectedCart->content = json_encode($oldContent);
             $selectedCart->save();
-            return response()->json([
-                'Status' => 'SUCCESS',
-                'Data' => json_encode($selectedCart->content)
-                ]);
+
+            return new CartResource($selectedCart);
         }
     }
 
@@ -99,10 +95,8 @@ class CartController extends Controller
         }
         $selectedCart->content = json_encode($newContent);
         $selectedCart->save();
-        return response()->json([
-            'Status' => 'SUCCESS',
-            'Data' => json_decode($selectedCart->content)
-        ]);
+        
+        return new CartResource($selectedCart);
     }
 
     public function AddDiscount(StoreDiscountRequest $request, $id)
@@ -124,34 +118,13 @@ class CartController extends Controller
         ];
         $selectedCart->discount = json_encode($discountValue);
         $selectedCart->save();
-        return response()->json([
-            'Status' => 'SUCCESS',
-            'Data' => json_decode($selectedCart->discount)
-        ]);
+        
+        return new CartResource($selectedCart);
     }
 
     public function GetCart(CartItemsRequest $request, $id)
     {
         $selectedCart = Cart::find($id);
-        $content = json_decode($selectedCart->content);
-        $discount = json_decode($selectedCart->discount);
-        $totalTax = 0;
-        $totalCart = 0;
-        $content = json_decode($selectedCart->content);
-        foreach ($content as $item) {
-            $totalCart += $item->subtotal;
-            $totalTax += $item->tax;
-        }
-        $data = [
-            "identifier" => $selectedCart->id,
-            "items" => $content,
-            "discount" => $discount,
-            "summary" => [
-                "discount_amount" => $discount->discounted_amount,
-                "tax" => $totalTax,
-                "total_amount" => $totalCart - $discount->discounted_amount
-            ]
-        ];
-        return response()->json($data);
+        return new CartResource($selectedCart);
     }
 }
